@@ -1,23 +1,31 @@
 import time
-from selenium import webdriver
+import sys
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import WebDriverException
 
-from locust import Locust, events
+from locust import events
 from locust.exception import StopLocust
 
 
-def wrapForLocust(request_type, name, func, *args, **kwargs):
+def wrapForLocust(instance, request_type, name, func, *args, **kwargs):
+    start_time = time.time()
+
     try:
-        start_time = time.time()
         result = func(*args, **kwargs)
+
+    except WebDriverException, e:
+        events.locust_error.fire(locust_instance=instance, exception=e, tb=sys.exc_info()[2])
+
     except Exception as e:
-        total_time = int((time.time() - start_time) * 1000)
+        total_time = round(time.time() - start_time, 4)
         events.request_failure.fire(request_type=request_type, name=name, response_time=total_time, exception=e)
         raise StopLocust()
+
     else:
-        total_time = int((time.time() - start_time) * 1000)
+        total_time = round(time.time() - start_time, 4)
         events.request_success.fire(request_type=request_type, name=name, response_time=total_time, response_length=0)
         return result
+
 
 class RealBrowserClient(object):
 
@@ -43,7 +51,7 @@ class RealBrowserClient(object):
         Raises:
             StopLocust: whenever func raises an exception, this exception is catched, logged to locust as a failure and a StopLocust exception is raised.
         """
-        return wrapForLocust(request_type, message, func, *args, **kwargs)
+        return wrapForLocust(self, request_type, message, func, *args, **kwargs)
 
     def __getattr__(self, attr):
         """Forward all messages this client doesn't understand to it's webdriver"""
