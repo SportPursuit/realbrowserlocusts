@@ -28,6 +28,15 @@ class RealBrowserLocust(Locust):
         if self._browser == webdriver.PhantomJS and self.headless:
             logger.warning('Using headless mode and PhantomJS is redundant.')
 
+    def create_client(self):
+        profile = webdriver.FirefoxProfile()
+        profile.accept_untrusted_certs = True
+        return RealBrowserClient(self._browser(profile), self.timeout, self.screen_width, self.screen_height)
+
+    def restart_client(self):
+        self.client.close()
+        return self.create_client()
+
     def run(self):
         display = None
 
@@ -36,7 +45,7 @@ class RealBrowserLocust(Locust):
             display.start()
 
         try:
-            self.client = RealBrowserClient(self._browser(), self.timeout, self.screen_width, self.screen_height)
+            self.client = self.create_client()
             super(RealBrowserLocust, self).run()
 
         finally:
