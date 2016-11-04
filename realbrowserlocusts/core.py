@@ -29,10 +29,23 @@ def wrapForLocust(instance, request_type, name, func, *args, **kwargs):
 
 class RealBrowserClient(object):
 
-    def __init__(self, driver, wait_time_to_finish, screen_width, screen_height):
-        self.driver = driver
-        self.driver.set_window_size(screen_width, screen_height)
-        self.wait = WebDriverWait(self.driver, wait_time_to_finish)
+    def __init__(self, browser, wait_time_to_finish, screen_width, screen_height):
+        self.driver = None
+        self.browser = browser
+        self.wait_time_to_finish = wait_time_to_finish
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+
+        self.restart_client()
+
+    def restart_client(self):
+
+        if self.driver:
+            self.driver.quit()
+
+        self.driver = self.browser()
+        self.driver.set_window_size(self.screen_width, self.screen_height)
+        self.wait = WebDriverWait(self.driver, self.wait_time_to_finish)
 
     def timed_event_for_locust(self, request_type, message, func, *args, **kwargs):
         """

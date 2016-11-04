@@ -36,14 +36,12 @@ class RealBrowserLocust(Locust):
             display.start()
 
         try:
-            self.client = RealBrowserClient(self._browser(), self.timeout, self.screen_width, self.screen_height)
+            self.client = RealBrowserClient(self._browser, self.timeout, self.screen_width, self.screen_height)
             super(RealBrowserLocust, self).run()
-
         finally:
             if display is not None:
                 display.stop()
 
-            self.client.quit()
 
 
 class ChromeLocust(RealBrowserLocust):
