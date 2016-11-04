@@ -4,7 +4,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import WebDriverException
 
 from locust import events
-from locust.exception import StopLocust
+from locust.exception import LocustError
 
 
 def wrapForLocust(instance, request_type, name, func, *args, **kwargs):
@@ -19,7 +19,8 @@ def wrapForLocust(instance, request_type, name, func, *args, **kwargs):
     except Exception as e:
         total_time = round(time.time() - start_time, 4)
         events.request_failure.fire(request_type=request_type, name=name, response_time=total_time, exception=e)
-        raise StopLocust()
+        instance.save_screenshot('screenshot-%s.png' % time.time())
+        raise LocustError()
 
     else:
         total_time = round(time.time() - start_time, 4)
