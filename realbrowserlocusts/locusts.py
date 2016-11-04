@@ -43,8 +43,6 @@ class RealBrowserLocust(Locust):
             if display is not None:
                 display.stop()
 
-            self.client.quit()
-
 
 class ChromeLocust(RealBrowserLocust):
     """
@@ -65,3 +63,4 @@ class PhantomJSLocust(RealBrowserLocust):
     This is the abstract Locust class which should be subclassed. It provides a PhantomJS webdriver that logs GET's and waits to locust
     """
     _browser = webdriver.PhantomJS
+
