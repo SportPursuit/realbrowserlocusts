@@ -1,10 +1,11 @@
 import time
 import sys
+from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import WebDriverException
 
 from locust import events
-from locust.exception import LocustError
+from locust.exception import StopLocust
 
 
 def wrapForLocust(instance, request_type, name, func, *args, **kwargs):
@@ -15,12 +16,13 @@ def wrapForLocust(instance, request_type, name, func, *args, **kwargs):
 
     except WebDriverException, e:
         events.locust_error.fire(locust_instance=instance, exception=e, tb=sys.exc_info()[2])
+	instance.save_screenshot('screenshot-%s.png' % time.time())
 
     except Exception as e:
         total_time = round(time.time() - start_time, 4)
         events.request_failure.fire(request_type=request_type, name=name, response_time=total_time, exception=e)
         instance.save_screenshot('screenshot-%s.png' % time.time())
-        raise LocustError()
+        raise StopLocust()
 
     else:
         total_time = round(time.time() - start_time, 4)
@@ -44,7 +46,9 @@ class RealBrowserClient(object):
         if self.driver:
             self.driver.quit()
 
-        self.driver = self.browser()
+        options = webdriver.ChromeOptions()
+        options.add_argument('--ignore-certificate-errors')
+        self.driver = webdriver.Chrome(chrome_options=options)
         self.driver.set_window_size(self.screen_width, self.screen_height)
         self.wait = WebDriverWait(self.driver, self.wait_time_to_finish)
 
@@ -70,3 +74,4 @@ class RealBrowserClient(object):
     def __getattr__(self, attr):
         """Forward all messages this client doesn't understand to it's webdriver"""
         return getattr(self.driver, attr)
+

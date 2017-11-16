@@ -28,20 +28,11 @@ class RealBrowserLocust(Locust):
         if self._browser == webdriver.PhantomJS and self.headless:
             logger.warning('Using headless mode and PhantomJS is redundant.')
 
-    def create_client(self):
-        profile = webdriver.FirefoxProfile()
-        profile.accept_untrusted_certs = True
-        return RealBrowserClient(self._browser(profile), self.timeout, self.screen_width, self.screen_height)
-
-    def restart_client(self):
-        self.client.close()
-        return self.create_client()
-
     def run(self):
         display = None
 
         if self.headless:
-            display = Xvfb(width=self.screen_width, height=self.screen_height)
+            display = Xvfb(width=self.screen_width, height=self.screen_height, colordepth=24)
             display.start()
 
         try:
@@ -71,4 +62,5 @@ class PhantomJSLocust(RealBrowserLocust):
     This is the abstract Locust class which should be subclassed. It provides a PhantomJS webdriver that logs GET's and waits to locust
     """
     _browser = webdriver.PhantomJS
+
 
