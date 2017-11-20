@@ -39,6 +39,10 @@ class RealBrowserLocust(Locust):
     def run(self):
         display = None
 
+        if self.headless:
+            display = Xvfb(width=self.screen_width, height=self.screen_height)
+            display.start()
+
         try:
             self.client = RealBrowserClient(self._browser, self.timeout, self.screen_width, self.screen_height)
             super(RealBrowserLocust, self).run()
@@ -57,11 +61,7 @@ class HeadlessChromeLocust(RealBrowserLocust):
     """
     Provides a headless Chrome webdriver that logs GET's and waits to locust
     """
-    options = webdriver.ChromeOptions()
-    options.add_argument('headless')
-    options.add_argument('disable-gpu')
-    _browser = webdriver.Chrome(chrome_options=options)
-
+    _browser = webdriver.HeadlessChrome
 
 class FirefoxLocust(RealBrowserLocust):
     """
