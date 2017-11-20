@@ -52,8 +52,7 @@ class RealBrowserClient(object):
             self.driver.set_window_size(screen_width, screen_height)
         self.wait = WebDriverWait(self.driver, wait_time_to_finish)
 
-    @staticmethod
-    def timed_event_for_locust(request_type, message, func, *args, **kwargs):
+    def timed_event_for_locust(self, request_type, message, func, *args, **kwargs):
         """
         Use this method whenever you have a logical sequence of browser steps
         that you would like to time. Group these in a seperate, not @task
