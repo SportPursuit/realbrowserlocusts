@@ -3,10 +3,10 @@
 import time
 from selenium.webdriver.support.ui import WebDriverWait
 from locust import events
-from locust.exception import StopLocust
+from locust.exception import LocustError
 
 
-def wrap_for_locust(request_type, name, func, *args, **kwargs):
+def wrap_for_locust(instance, request_type, name, func, *args, **kwargs):
     """
     Wrap Selenium activity function with Locust's event fail/success
     method
@@ -27,7 +27,8 @@ def wrap_for_locust(request_type, name, func, *args, **kwargs):
             response_time=total_time,
             exception=event_exception
         )
-        raise StopLocust()
+        instance.save_screenshot('screenshot-%s.png' % time.time())
+        raise LocustError()
     else:
         total_time = int((time.time() - start_time) * 1000)
         events.request_success.fire(
@@ -75,7 +76,7 @@ class RealBrowserClient(object):
             catched, logged to locust as a failure and a StopLocust exception
             is raised.
         """
-        return wrap_for_locust(request_type, message, func, *args, **kwargs)
+        return wrap_for_locust(self, request_type, message, func, *args, **kwargs)
 
     def __getattr__(self, attr):
         """
