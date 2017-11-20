@@ -1,12 +1,14 @@
 # pylint:disable=too-few-public-methods
 """ Core Selenium wrapping functionality """
 import time
+import sys
 from selenium.webdriver.support.ui import WebDriverWait
 from locust import events
-from locust.exception import StopLocust
+from locust.exception import LocustError
+from selenium.common.exceptions import WebDriverException
 
 
-def wrap_for_locust(request_type, name, func, *args, **kwargs):
+def wrap_for_locust(instance, request_type, name, func, *args, **kwargs):
     """
     Wrap Selenium activity function with Locust's event fail/success
     method
@@ -16,20 +18,28 @@ def wrap_for_locust(request_type, name, func, *args, **kwargs):
     :param func: callable to be timed and logged
     :return result: Result of the provided function if doesn't raise exception
     """
+
+    start_time = time.time()
+
     try:
-        start_time = time.time()
         result = func(*args, **kwargs)
+
+    except WebDriverException, e:
+        events.locust_error.fire(locust_instance=instance, exception=e, tb=sys.exc_info()[2])
+
     except Exception as event_exception:
-        total_time = int((time.time() - start_time) * 1000)
+        total_time = round(time.time() - start_time, 4)
         events.request_failure.fire(
             request_type=request_type,
             name=name,
             response_time=total_time,
             exception=event_exception
         )
-        raise StopLocust()
+        instance.save_screenshot('screenshot-%s.png' % time.time())
+        raise LocustError()
+
     else:
-        total_time = int((time.time() - start_time) * 1000)
+        total_time = round(time.time() - start_time, 4)
         events.request_success.fire(
             request_type=request_type,
             name=name,
@@ -44,9 +54,23 @@ class RealBrowserClient(object):
     Web Driver client with Locust functionality
     """
 
-    def __init__(self, driver, wait_time_to_finish, screen_width,
+    def __init__(self, browser, wait_time_to_finish, screen_width,
                  screen_height, set_window=True):
-        self.driver = driver
+        self.driver = None
+        self.browser = browser
+        self.wait_time_to_finish = wait_time_to_finish
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+
+        self.restart_client()
+
+    def restart_client(self):
+
+        if self.driver:
+            self.driver.quit()
+
+        self.driver = self.browser()
+
         if set_window:
             self.driver.set_window_size(screen_width, screen_height)
         self.wait = WebDriverWait(self.driver, wait_time_to_finish)

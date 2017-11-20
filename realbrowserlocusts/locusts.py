@@ -13,6 +13,7 @@ class RealBrowserLocust(Locust):
     """
    This is the abstract Locust class which should be subclassed.
    """
+    _browser = None
     client = None
     timeout = 30
     screen_width = None
@@ -26,68 +27,51 @@ class RealBrowserLocust(Locust):
         if self.screen_height is None:
             raise LocustError("You must specify a screen_height "
                               "for the browser")
+    def create_client(self):
+        profile = webdriver.FirefoxProfile()
+        profile.accept_untrusted_certs = True
+        return RealBrowserClient(self._browser(profile), self.timeout, self.screen_width, self.screen_height)
 
+    def restart_client(self):
+        self.client.close()
+        return self.create_client()
+
+    def run(self):
+        display = None
+
+        if self.headless:
+            display = Xvfb(width=self.screen_width, height=self.screen_height)
+            display.start()
+
+        try:
+            self.client = RealBrowserClient(self._browser, self.timeout, self.screen_width, self.screen_height)
+            super(RealBrowserLocust, self).run()
+        finally:
+            if display is not None:
+                display.stop()
 
 class ChromeLocust(RealBrowserLocust):
     """
     Provides a Chrome webdriver that logs GET's and waits to locust
     """
-    def __init__(self):
-        super(ChromeLocust, self).__init__()
-        self.client = RealBrowserClient(
-            webdriver.Chrome(),
-            self.timeout,
-            self.screen_width,
-            self.screen_height
-        )
+    _browser = webdriver.Chrome
 
 
 class HeadlessChromeLocust(RealBrowserLocust):
     """
     Provides a headless Chrome webdriver that logs GET's and waits to locust
     """
-    def __init__(self):
-        super(HeadlessChromeLocust, self).__init__()
-        options = webdriver.ChromeOptions()
-        options.add_argument('headless')
-        options.add_argument('window-size={}x{}'.format(
-            self.screen_width, self.screen_height
-        ))
-        options.add_argument('disable-gpu')
-        driver = webdriver.Chrome(chrome_options=options)
-        _LOGGER.info('Actually trying to run headless Chrome')
-        self.client = RealBrowserClient(
-            driver,
-            self.timeout,
-            self.screen_width,
-            self.screen_height,
-            set_window=False
-        )
-
+    _browser = webdriver.HeadlessChrome
 
 class FirefoxLocust(RealBrowserLocust):
     """
     Provides a Firefox webdriver that logs GET's and waits to locust
     """
-    def __init__(self):
-        super(FirefoxLocust, self).__init__()
-        self.client = RealBrowserClient(
-            webdriver.Firefox(),
-            self.timeout,
-            self.screen_width,
-            self.screen_height
-        )
-
+    _browser = webdriver.Firefox
 
 class PhantomJSLocust(RealBrowserLocust):
     """
     Provides a PhantomJS webdriver that logs GET's and waits to locust
     """
-    def __init__(self):
-        super(PhantomJSLocust, self).__init__()
-        self.client = RealBrowserClient(
-            webdriver.PhantomJS(),
-            self.timeout,
-            self.screen_width,
-            self.screen_height
-        )
+    _browser = webdriver.PhantomJS
+
